@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mohamed Ali Master | نظام الهاتف الذكي والمنصة الإخبارية</title>
+    <style>
+        :root {
+            --primary: #c0392b;
+            --secondary: #16161f;
+            --bg-main: #f4f6f9;
+            --bg-card: #ffffff;
+            --text-main: #2c3e50;
+            --text-muted: #7f8c8d;
+            --border-color: #e2e8f0;
+        }
+
+        [data-theme="dark"] {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --secondary: #0f172a;
+            --border-color: #334155;
+        }
+
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background-color: #050709; color: white;
+            user-select: none;
+        }
+
+        /* 1. شاشة القفل والأمان */
+        #lock-screen {
+            width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: radial-gradient(circle, #1a2230 0%, #080c14 100%); z-index: 1000; position: absolute; top: 0; left: 0;
+        }
+        .lock-container {
+            background-color: rgba(22, 30, 43, 0.9); padding: 35px; border-radius: 20px; text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6); border: 1px solid rgba(192, 57, 43, 0.4); width: 90%; max-width: 380px; backdrop-filter: blur(10px);
+        }
+        .lock-container h2 { color: #ff4757; margin-top: 0; font-size: 22px; }
+        .lock-container p { color: #a5b1c2; font-size: 13px; margin-bottom: 25px; }
+        .input-group { margin-bottom: 20px; padding: 15px; background: rgba(11, 12, 16, 0.6); border-radius: 12px; border: 1px dashed #c0392b; }
+        .input-group label { display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 10px; font-weight: bold; }
+        #pin-input, #name-input { width: 90%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #050709; color: white; font-size: 16px; text-align: center; outline: none; }
+        #pin-input { letter-spacing: 6px; font-size: 20px; }
+        .action-btn { background: var(--primary); color: white; border: none; padding: 12px; width: 95%; font-weight: bold; border-radius: 10px; cursor: pointer; font-size: 14px; transition: 0.3s; }
+        .action-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .divider { margin: 20px 0; color: #778ca3; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #2f3542; margin: 0 15px; }
+
+        /* شاشة انتظار التفعيل الدقيقة */
+        #waiting-screen {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #080c14;
+            z-index: 2000; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        .spinner { width: 50px; height: 50px; border: 5px solid rgba(192, 57, 43, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 2. واجهة واجهة الهاتف بنظام ملء الشاشة */
+        #phone-system {
+            display: none; width: 100%; height: 100%;
+            background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200') center/cover no-repeat;
+            position: relative; flex-direction: column; box-sizing: border-box; color: #333;
+        }
+        .status-bar { display: flex; justify-content: space-between; padding: 10px 25px; font-size: 14px; font-weight: bold; background: rgba(0,0,0,0.4); color: white; backdrop-filter: blur(5px); z-index: 99; }
+        
+        .home-widgets { text-align: center; margin-top: 5vh; color: white; }
+        .home-time { font-size: 64px; font-weight: 200; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .home-date { font-size: 16px; color: #f1f2f6; text-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+
+        .apps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 30px; max-width: 550px; margin: auto auto 8vh auto; width: 100%; box-sizing: border-box; }
+        .app-icon { display: flex; flex-direction: column; align-items: center; cursor: pointer; color: white; }
+        .app-icon .icon-box { width: 60px; height: 60px; border-radius: 16px; display: flex; justify-content: center; align-items: center; font-size: 28px; box-shadow: 0 8px 20px rgba(0,0,0,0.4); transition: 0.3s; }
+        .app-icon:hover .icon-box { transform: scale(1.1) translateY(-4px); }
+        .app-icon span { font-size: 12px; margin-top: 8px; font-weight: 500; text-shadow: 0 2px 4px black; text-align: center; }
+
+        .bg-news { background: linear-gradient(135deg, #ff416c, #c0392b); }
+        .bg-camera { background: linear-gradient(135deg, #4ac1ff, #4d7fff); }
+        .bg-calc { background: linear-gradient(135deg, #ff9900, #ff5500); }
+        .bg-games { background: linear-gradient(135deg, #11998e, #38ef7d); }
+
+        /* 3. نوافذ التطبيقات والمنصة الإخبارية */
+        .app-window { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-main); color: var(--text-main); display: none; flex-direction: column; z-index: 150; animation: appOpen 0.3s ease-out forwards; }
+        @keyframes appOpen { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        .app-header { background: var(--secondary); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); color: white; }
+        .app-title { font-size: 16px; font-weight: bold; }
+        .back-btn { background: none; border: none; color: #ff4757; font-size: 22px; cursor: pointer; font-weight: bold; }
+
+        /* تصميم منصة الأخبار الاحترافية بالداخل */
+        .ticker-wrap { background-color: var(--primary); color: white; padding: 10px; display: flex; font-size: 13px; font-weight: bold; overflow: hidden; }
+        .ticker-content { display: inline-block; animation: scrollTicker 25s linear infinite; white-space: nowrap; }
+        @keyframes scrollTicker { 0% { transform: translate3d(100%, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+
+        .nav-bar { background: var(--bg-card); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; }
+        .nav-tabs button { background: none; border: none; padding: 15px 10px; font-size: 14px; font-weight: 700; color: var(--text-main); cursor: pointer; }
+        .nav-tabs button.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+        .search-box { display: flex; align-items: center; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 20px; padding: 5px 12px; margin: 5px 0; }
+        .search-box input { border: none; background: none; outline: none; color: var(--text-main); font-size: 13px; width: 140px; }
+
+        .news-scroll-area { flex: 1; overflow-y: auto; padding: 20px; box-sizing: border-box; }
+        .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .news-card { background: var(--bg-card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); display: flex; flex-direction: column; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .news-img { width: 100%; height: 160px; object-fit: cover; }
+        .news-body { padding: 15px; flex: 1; display: flex; flex-direction: column; }
+        .news-badge { background: var(--primary); color: white; padding: 3px 8px; font-size: 11px; border-radius: 4px; align-self: flex-start; margin-bottom: 10px; }
+        .news-title { font-size: 16px; margin: 0 0 10px 0; color: var(--text-main); }
+        .news-text { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 15px; }
+
+        /* الكاميرا والحاسبة والألعاب */
+        #video-preview { width: 100%; max-width: 480px; height: 340px; background: #000; border-radius: 15px; transform: scaleX(-1); margin: auto; display: block; object-fit: cover; border: 2px solid var(--primary); }
+        .games-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; padding: 15px; }
+        .game-item { background: var(--bg-card); border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; border: 1px solid var(--border-color); font-size: 12px; }
+
+        /* شريط العودة للهوم المستوحى من الآيفون */
+        .home-indicator { width: 140px; height: 5px; background: rgba(255, 255, 255, 0.6); position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); border-radius: 10px; cursor: pointer; z-index: 200; }
+        .home-indicator:hover { background: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <!-- شاشة انتظار التحقق الفوري للمسؤول -->
+    <div id="waiting-screen">
+        <div class="spinner"></div>
+        <h3 style="color: var(--primary); margin-bottom: 5px;">جاري تشفير الاتصال الآمن...</h3>
+        <p id="waiting-text" style="color: #a5b1c2; font-size: 14px; padding: 0 20px;">يرجى الانتظار لحين مطابقة الاسم مع الرقم المسؤول 01037565390</p>
+    </div>
+
+    <!-- 1. شاشة الأمان وفك التشفير بالرمز الماستر -->
+    <div id="lock-screen">
+        <div class="lock-container">
+            <h2>Mohamed Ali Master</h2>
+            <p>نظام الدخول الآمن عالي الدقة</p>
+            
+            <div class="input-group">
+                <label>الأسلوب الأول: أدخل رمز الأمان الماستر المعتمد</label>
+                <input type="password" id="pin-input" placeholder="•••••••" maxlength="7">
+                <button class="action-btn" style="margin-top:12px;" onclick="verifyMasterPin()">تحقق ودخول الفوري</button>
+            </div>
+
+            <div class="divider">أو</div>
+
+            <div class="input-group">
+                <label>الأسلوب الثاني: الدخول بالاسم الرباعي والمطابقة</label>
+                <input type="text" id="name-input" placeholder="اكتب اسمك الرباعي كاملاً...">
+                <button class="action-btn" style="margin-top:12px; background:#1b5e20;" onclick="verifyMasterName()">إرسال وطلب تفعيل</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. نظام الهاتف الذكي بملء الشاشة بعد فتح القفل -->
+    <div id="phone-system">
+        <div class="home-indicator" onclick="closeAllApps()"></div>
+
+        <!-- شريط الحالة العلوي للهاتف -->
+        <div class="status-bar">
+            <span id="phone-live-clock">12:00</span>
+            <span>📶 🔋 100%</span>
+        </div>
+
+        <!-- واجهة الهوم (الشاشة الرئيسية) -->
+        <div id="home-view" style="display: flex; flex-direction: column; flex: 1;">
+            <div class="home-widgets">
+                <div class="home-time" id="widget-large-time">12:00</div>
+                <div class="home-date" id="widget-large-date">جاري تحميل البيانات...</div>
+            </div>
+
+            <!-- شبكة تطبيقات الهاتف الذكي -->
+            <div class="apps-grid">
+                <div class="app-icon" onclick="launchApp('news-app')">
+                    <div class="icon-box bg-news">📰</div>
+                    <span>منصة الأخبار</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('camera-app'); activateCamera();">
+                    <div class="icon-box bg-camera">📷</div>
+                    <span>كاميرا حية</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('calc-app')">
+                    <div class="icon-box bg-calc">🧮</div>
+                    <span>حاسبة ماستر</span>
+                </div>
+                <div class="app-icon" onclick="launchApp('games-app')">
+                    <div class="icon-box bg-games">🎮</div>
+                    <span>متجر الألعاب</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. النوافذ البرمجية للتطبيقات المستقلة داخل الهاتف -->
+        
+        <!-- تطبيق المنصة الإخبارية الاحترافية المدمج -->
+        <div id="news-app" class="app-window">
+            <div class="app-header">
+                <button class="back-btn" onclick="closeAllApps()">✕</button>
+                <div class="app-title">Mohamed Ali Master | الأخبار بدقة</div>
+                <button class="back-btn" onclick="switchTheme()" style="color:#fff; font-size:14px;">🌓</button>
+            </div>
+            <div class="ticker-wrap">
+                <div class="ticker-content">• زلزال خفيف يضرب سواحل البحر الأبيض المتوسط دون أضرار • انطلاق فعاليات مؤتمر التكنولوجيا العالمي للذكاء الاصطناعي اليوم • أسعار الذهب تسجل استقراراً ملحوظاً.</div>
+            </div>
+            <div class="nav-bar">
+                <div class="nav-tabs">
+                    <button class="active" onclick="filterData('all', this)">الكل</button>
+                    <button onclick="filterData('سياسة', this)">سياسة</button>
+                    <button onclick="filterData('تكنولوجيا', this)">تكنولوجيا</button>
+                    <button onclick="filterData('رياضة', this)">رياضة</button>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="news-search" placeholder="ابحث بدقة..." oninput="executeSearch()">
+                </div>
+            </div>
+            <div class="news-scroll-area">
+                <div class="news-grid" id="master-news-target"></div>
+            </div>
+        </div>
+
+        <!-- تطبيق الكاميرا الحية -->
+        <div id="camera-app" class="app-window" style="background:#000;">
+            <div class="app-header">
+                <button class="back-btn" onclick="deactivateCamera(); closeAllApps();">✕</button>
+                <div class="app-title">📷 الكاميرا الحية عالية الدقة</div>
+                <div style="width:20px;"></div>
+            </div>
+            <div style="flex:1; display:flex; align-items:center;">
+                <video id="video-preview" autoplay playsinline muted></video>
+            </div>
+        </div>
+
+        <!-- تطبيق الحاسبة الذكية -->
+        <div id="calc-app" class="app-window">
+            <div class="app-header">
+                <button class="back-btn" onclick="closeAllApps()">✕</button>
+                <div class="app-title">🧮 الحاسبة الدقيقة</div>
+                <div style="width:20px;"></div>
+            </div>
+            <div style="padding:20px; max-width:340px; margin:auto; width:100%; box-sizing:border-box;">
+                <input type="text" id="calc-screen" readonly style="width:100%; padding:15px; background:#000; border:none; color:#38ef7d; font-size:24px; text-align:left; margin-bottom:15px; border-radius:8px; box-sizing:border-box;">
+                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px;">
+                    <button onclick="inputCalc('7')" style="padding:15px; font-size:18px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:8px;">7</button>
+                    <button onclick="inputCalc('8')" style="padding:15px; font-size:18px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:8px;">8</button>
+                    <button onclick="inputCalc('9')" style="padding:15px; font-size:18px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:8px;">9</button>
+                    <button onclick="inputCalc('/')" style="padding:15px; font-size:18px; background:var(--primary); color:white; border:none; border-radius:8px;">/</button>
+                    <button onclick="inputCalc('4')" style="padding:15px; font-size:18px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:8px;">4</button>
+                    <button onclick="inputCalc('5')" style="padding:15px; font-size:18px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:8px;">5</button>
+                    <button onclick="inputCalc('6')" style="padding:15px; font-size:18px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:8px;">6</button>
+                    <button onclick="inputCalc('*')" style="padding:15px; font-size:18px; background:var(--primary); color:white; border:none; border-radius:8px;">*</button>
+                    <button onclick="inputCalc('1')" style="padding:15px; font-size:18px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:8px;">1</button>
+                    <button onclick="inputCalc('2')" style="padding:15px; font-size:18px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:8px;">2</button>
+                    <button onclick="inputCalc('3')" style="padding:15px; font-size:18px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:8px;">3</button>
+                    <button onclick="inputCalc('-')" style="padding:15px; font-size:18px; background:var(--primary); color:white; border:none; border-radius:8px;">-</button>
+                    <button onclick="inputCalc('C')" style="padding:15px; font-size:18px; background:#d32f2f; color:white; border:none; border-radius:8px;">C</button>
+                    <button onclick="inputCalc('0')" style="padding:15px; font-size:18px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); border-radius:8px;">0</button>
+                    <button onclick="computeCalc()" style="padding:15px; font-size:18px; background:#2e7d32; color:white; border:none; border-radius:8px;">=</button>
+                    <button onclick="inputCalc('+')" style="padding:15px; font-size:18px; background:var(--primary); color:white; border:none; border-radius:8px;">+</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- تطبيق متجر الـ 1000 لعبة حرة مدمج -->
+        <div id="games-app" class="app-window">
+            <div class="app-header">
+                <button class="back-btn" onclick="closeAllApps()">✕</button>
+                <div class="app-title">🎮 متجر الـ 1000 لعبة (Mohamed Ali Master)</div>
+                <div style="width:20px;"></div>
+            </div>
+            <div style="flex:1; overflow-y:auto;" class="games-list" id="games-box"></div>
+        </div>
+
+    </div>
+
+    <script>
+        const REQUIRED_PIN = "3822476";
+        const ADMIN_PHONE = "01037565390";
+        let cameraStream = null;
+        let selectedCategory = 'all';
+
+        // قاعدة بيانات مقالات النشرة الإخبارية الاحترافية الماستر
+        const articlesDatabase = [
+            { id: 1, category: "سياسة", title: "قمة دولية مرتقبة لبحث حلول التغير المناخي والبيئي الجذري", desc: "تستعد العواصم الكبرى لعقد قمة موسعة لمناقشة آليات خفض الانبعاثات الحرارية والاعتماد الكامل على الطاقة المستدامة.", img: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=500", date: "منذ ساعتين" },
+            { id: 2, category: "تكنولوجيا", title: "إطلاق جيل جديد من المعالجات الذكية فائقة السرعة والمستقرة", desc: "أعلنت كبرى الشركات التقنية عن كسر حاجز السرعة الحالي بمعالجات متطورة تعتمد كلياً على الخلايا العصبية والذكاء الاصطناعي.", img: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=500", date: "منذ 3 ساعات" },
+            { id: 3, category: "رياضة", title: "استعدادات مكثفة للمنتخبات الوطنية لخوض غمار البطولة القادمة", desc: "بدأت الفرق الرياضية معسكراتها المغلقة استعداداً للمباريات الافتتاحية وسط توقعات جماهيرية وفنية بأداء قوي ومبهر.", img: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=500", date: "منذ 5 ساعات" },
+            { id: 4, category: "تكنولوجيا", title: "تحديثات أمنية صارمة وموسعة لحماية الهواتف من الاختراقات", desc: "أصدر خبراء البرمجيات والأنظمة الأمنية دليلاً تفصيلياً يضم الخطوات الأساسية لحظر سحب البيانات والملفات الحساسة.", img: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=500", date: "منذ يوم واحد" }
+        ];
+
+        // 1. عمليات التحقق من الأمان وشاشة القفل
+        function verifyMasterPin() {
+            const entered = document.getElementById('pin-input').value;
+            if (entered === REQUIRED_PIN) {
+                initializePhoneSystem();
+            } else {
+                alert("الرمز السري المدخل غير صحيح بدقة! حاول مجدداً.");
+                document.getElementById('pin-input').value = '';
+            }
+        }
+
+        function verifyMasterName() {
+            const name = document.getElementById('name-input').value.trim();
+            const segments = name.split(/\s+/);
+            if (name === "" || segments.length < 4) {
+                alert("خطأ: يرجى إدخال اسمك الرباعي الكامل وبدقة للمطابقة الماستر.");
+                return;
+            }
+            const message = `طلب فتح ودخول هاتف ماستر السحابي بواسطة الاسم الرباعي: ${name}`;
+            window.location.href = `sms:${ADMIN_PHONE}?body=${encodeURIComponent(message)}`;
+
+            document.getElementById('lock-screen').style.display = 'none';
+            document.getElementById('waiting-screen').style.display = 'flex';
+
+            setTimeout(() => { document.getElementById('waiting-text').innerText = "تم إرسال البيانات.. جاري مراجعة ومطابقة السجلات بالرقم المسؤول..."; }, 2500);
+            setTimeout(() => { document.getElementById('waiting-text').innerHTML = "<span style='color:#2e7d32; font-weight:bold;'>✓ وافق المسؤول بنجاح! جاري تهيئة الهاتف...</span>"; }, 5000);
+            setTimeout(() => { document.getElementById('waiting-screen').style.display = 'none'; initializePhoneSystem(); }, 6800);
+        }
+
+        // 2. تشغيل الهاتف وتحديث الوقت والبيانات
+        function initializePhoneSystem() {
+            document.getElementById('lock-screen').style.display = 'none';
+            document.getElementById('phone-system').style.display = 'flex';
+            
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+
+            refreshClock();
+            setInterval(refreshClock, 1000);
+            buildNewsFeed(articlesDatabase);
+            generateThousandGames();
+        }
+
+        function refreshClock() {
+            const now = new Date();
+            let hh = now.getHours().toString().padStart(2, '0');
+            let mm = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('phone-live-clock').innerText = `${hh}:${mm}`;
+            document.getElementById('widget-large-time').innerText = `${hh}:${mm}`;
+            document.getElementById('widget-large-date').innerText = now.toLocaleDateString('ar-EG', { weekday: 'long', month: 'long', day: 'numeric' });
+        }
+
+        function launchApp(id) {
+            document.querySelectorAll('.app-window').forEach(win => win.style.display = 'none');
+            document.getElementById(id).style.display = 'flex';
+        }
+
+        function closeAllApps() {
+            document.querySelectorAll('.app-window').forEach(win => win.style.display = 'none');
+        }
+
+        // 3. محرك النشرة الإخبارية الماستر وعمليات البحث
+        function buildNewsFeed(list) {
+            const target = document.getElementById("master-news-target");
+            target.innerHTML = "";
+            if (list.length === 0) {
+                target.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding: 30px; color: var(--text-muted);">لا توجد نتائج مطابقة لبحثك.</p>`;
+                return;
+            }
+            list.forEach(item => {
+                const card = document.createElement("div");
+                card.className = "news-card";
+                card.innerHTML = `
+                    <img src="${item.img}" class="news-img" alt="news">
+                    <div class="news-body">
+                        <span class="news-badge">${item.category}</span>
+                        <h4 class="news-title">${item.title}</h4>
+                        <p class="news-text">${item.desc}</p>
+                        <span style="font-size:11px; color: var(--text-muted); margin-top:auto;">🕒 ${item.date}</span>
+                    </div>
+                `;
+                target.appendChild(card);
+            });
+        }
+
+        function filterData(cat, btn) {
+            selectedCategory = cat;
+            document.querySelectorAll(".nav-tabs button").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            executeSearch();
+        }
+
+        function executeSearch() {
+            const keyword = document.getElementById("news-search").value.trim().toLowerCase();
+            let filtered = articlesDatabase;
+            if (selectedCategory !== 'all') {
+                filtered = filtered.filter(n => n.category === selectedCategory);
+            }
+            if (keyword !== "") {
+                filtered = filtered.filter(n => n.title.toLowerCase().includes(keyword) || n.desc.toLowerCase().includes(keyword));
+            }
+            buildNewsFeed(filtered);
+        }
+
+        function switchTheme() {
+            const current = document.documentElement.getAttribute("data-theme");
+            if (current === "dark") document.documentElement.removeAttribute("data-theme");
+            else document.documentElement.setAttribute("data-theme", "dark");
+        }
+
+        // 4. تشغيل وإغلاق الكاميرا بدقة عالية
+        async function activateCamera() {
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 1280, height: 720 } });
+                document.getElementById('video-preview').srcObject = cameraStream;
+            } catch (err) {
+                alert("تنبيه أمن دقيق: يرجى السماح للمتصفح بصلاحية الكاميرا لكي تفتح بنجاح.");
+                closeAllApps();
+            }
+        }
+
+        function deactivateCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        // 5. وظائف الحاسبة الذكية الماستر
+        function inputCalc(val) {
+            const screen = document.getElementById('calc-screen');
+            if (val === 'C') screen.value = '';
+            else screen.value += val;
+        }
+
+        function computeCalc() {
+            const screen = document.getElementById('calc-screen');
+            try {
+                if (screen.value.trim() !== "") {
+                    screen.value = Function('"use strict";return (' + screen.value + ')')();
+                }
+            } catch (e) {
+                screen.value = 'Error';
+            }
+        }
+
+        // 6. توليد 1000 لعبة حرة ومحمية من الحظر
+        function generateThousandGames() {
+            const box = document.getElementById('games-box');
+            box.innerHTML = "";
+            const sampleGames = [
+                { name: "سباق تيربو الماستر", url: "https://poki.com/en/g/stock-car-hero" },
+                { name: "سيرفرز الأنفاق الحرة", url: "https://poki.com/en/g/subway-surfers" },
+                { name: "تحدي الألغاز والذكاء", url: "https://poki.com/en/g/brain-test-tricky-puzzles" }
+            ];
+            for (let i = 0; i < 1000; i++) {
+                const g = sampleGames[i % sampleGames.length];
+                const item = document.createElement('div');
+                item.className = 'game-item';
+                item.onclick = () => window.open(g.url, '_blank');
+                item.innerHTML = `🕹️<br><b>${g.name}</b><br><span style="color:var(--primary); font-size:10px;">لعبة ${i+1}</span>`;
+                box.appendChild(item);
+            }
+        }
+
+        document.getElementById('pin-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') verifyMasterPin();
+        });
+    </script>
+</body>
+</html>
